@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,9 +36,12 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -82,8 +86,11 @@ private fun PantryPalApp(vm: PantryViewModel = viewModel()) {
     val visible = entries.filter { it.name.contains(search, ignoreCase = true) }
         .filter { selectedCategory == "All" || it.category == selectedCategory }
 
-    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(primary = palette.accent, background = palette.canvas, surface = Color.White, onBackground = Ink)) {
-        Scaffold(containerColor = palette.canvas, topBar = { TopAppBar(title = { Text("PantryPal", fontWeight = FontWeight.Bold) }) },
+    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(primary = palette.accent, secondary = palette.accent, primaryContainer = palette.accent.copy(alpha = .18f), onPrimaryContainer = palette.accent, secondaryContainer = palette.accent.copy(alpha = .18f), onSecondaryContainer = palette.accent, background = palette.canvas, surface = Color.White, onBackground = Ink)) {
+        Scaffold(containerColor = palette.canvas, topBar = { TopAppBar(title = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Image(painterResource(com.premsingh.pantrypal.R.drawable.brand_logo), contentDescription = "PantryPal logo", modifier = Modifier.size(38.dp))
+                Text("PantryPal", fontWeight = FontWeight.Bold)
+            } }) },
             bottomBar = {
                 NavigationBar(containerColor = Color.White) {
                     PantryTab.entries.forEach { destination ->
@@ -150,7 +157,7 @@ private fun PantryPalApp(vm: PantryViewModel = viewModel()) {
 @Composable
 private fun SummaryCard(title: String, value: String, modifier: Modifier = Modifier, color: Color = Color.White) {
     Card(modifier, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = color)) {
-        Column(Modifier.padding(13.dp)) { Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Leaf); Text(title, style = MaterialTheme.typography.labelSmall, color = Muted) }
+        Column(Modifier.padding(13.dp)) { Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary); Text(title, style = MaterialTheme.typography.labelSmall, color = Muted) }
     }
 }
 
@@ -161,7 +168,7 @@ private fun PantryRow(entry: PantryEntry, today: Long, onUsed: () -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(entry.name, fontWeight = FontWeight.SemiBold, color = Ink)
                 Text("${entry.quantity} · ${entry.category}", color = Muted, style = MaterialTheme.typography.bodySmall)
-                Text(daysLabel(entry.expiryEpochDay, today), color = if (entry.expiryEpochDay - today <= 3) Color(0xFF9B5A17) else Leaf, style = MaterialTheme.typography.labelMedium)
+                Text(daysLabel(entry.expiryEpochDay, today), color = if (entry.expiryEpochDay - today <= 3) Color(0xFF9B5A17) else MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
             }
             TextButton(onClick = onUsed) { Text("Used") }
         }
