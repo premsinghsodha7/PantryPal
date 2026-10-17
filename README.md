@@ -5,9 +5,9 @@
 Keep track of what's on the shelf, spot food that's best used soon, and remove items as you cook. Pantry entries are stored locally in a Room database; there is no account or cloud service.
 ## App preview
 
-![PantryPal polished app preview](screenshots/app-preview.jpg)
+![PantryPal running on the Android emulator with sample pantry items](screenshots/app-preview.jpg)
 
-*Portfolio mockup composed from the current Compose layout and sample content.*
+*Live screenshot captured from a Pixel 9 Pro emulator running Android 15 (API 35).*
 
 
 ## Features
@@ -16,6 +16,9 @@ Keep track of what's on the shelf, spot food that's best used soon, and remove i
 - See total items, items expiring within three days, and expired items.
 - Add an item with its category, quantity, and days until expiry.
 - Mark an item used to remove it from the list.
+- Keep a shopping list, add items, and check them off as you shop.
+- Use a weekly meal planner and send meal ingredients to the shopping list.
+- Switch between Sage, Coast, and Apricot palettes.
 - Room persistence keeps the pantry on the device across app restarts.
 - Kotlin-only sources under `app/src/main/kotlin`.
 
@@ -29,7 +32,7 @@ Open this project in Android Studio (JDK 17, Android SDK 35) and run the `app` c
 app/src/main/kotlin/com/premsingh/pantrypal/
   data/       Room database, DAO and ViewModel
   domain/     Expiry summaries and display rules
-  MainActivity.kt  Compose pantry screens and add-item form
+  MainActivity.kt  Pantry, shopping list, meal planner, settings, and add-item form
 ```
 
 GitHub Actions runs unit tests and assembles the debug app on pushes and pull requests.
