@@ -7,7 +7,7 @@
 Keep track of what's on the shelf, spot food that's best used soon, and remove items as you cook. Pantry entries are stored locally in a Room database; there is no account or cloud service.
 ## App preview
 
-![PantryPal running on the Android emulator with sample pantry items](screenshots/app-preview.jpg)
+![PantryPal running on the Android emulator with sample pantry items](https://raw.githubusercontent.com/premsinghsodha7/PantryPal/main/screenshots/app-preview.jpg)
 
 *Live screenshot captured from a Pixel 9 Pro emulator running Android 15 (API 35).*
 
