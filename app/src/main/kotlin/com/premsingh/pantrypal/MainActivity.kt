@@ -23,6 +23,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -30,11 +32,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.premsingh.pantrypal.data.PantryEntry
@@ -46,6 +51,14 @@ private val Leaf = Color(0xFF315D48)
 private val Canvas = Color(0xFFF4F6F0)
 private val Ink = Color(0xFF202820)
 private val Muted = Color(0xFF707B70)
+
+private enum class PantryTab(val label: String, val glyph: String) { Pantry("Pantry", "⌂"), List("List", "☷"), Plan("Meal plan", "◷"), Settings("Settings", "⚙") }
+private data class PantryPalette(val name: String, val canvas: Color, val accent: Color)
+private val pantryPalettes = listOf(
+    PantryPalette("Sage", Color(0xFFF4F6F0), Color(0xFF315D48)),
+    PantryPalette("Coast", Color(0xFFF0F5F5), Color(0xFF28616A)),
+    PantryPalette("Apricot", Color(0xFFFBF3EA), Color(0xFF9B5D35))
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); setContent { PantryPalApp() } }
@@ -59,15 +72,28 @@ private fun PantryPalApp(vm: PantryViewModel = viewModel()) {
     var search by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
     var showAdd by remember { mutableStateOf(false) }
+    var tab by rememberSaveable { mutableStateOf(PantryTab.Pantry) }
+    var paletteIndex by rememberSaveable { mutableIntStateOf(0) }
+    var shoppingDraft by rememberSaveable { mutableStateOf("") }
+    val shoppingList = remember { mutableStateListOf("Spinach", "Oat milk", "Lemons") }
+    val palette = pantryPalettes[paletteIndex]
     val categories = listOf("All", "Produce", "Dairy", "Pantry", "Other")
     val summary = summarizeExpiry(entries.map { it.expiryEpochDay }, today)
     val visible = entries.filter { it.name.contains(search, ignoreCase = true) }
         .filter { selectedCategory == "All" || it.category == selectedCategory }
 
-    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(primary = Leaf, background = Canvas, surface = Color.White, onBackground = Ink)) {
-        Scaffold(containerColor = Canvas, topBar = { TopAppBar(title = { Text("PantryPal", fontWeight = FontWeight.Bold) }) },
-            floatingActionButton = { Button(onClick = { showAdd = true }) { Text("＋ Add item") } }) { padding ->
-            LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(primary = palette.accent, background = palette.canvas, surface = Color.White, onBackground = Ink)) {
+        Scaffold(containerColor = palette.canvas, topBar = { TopAppBar(title = { Text("PantryPal", fontWeight = FontWeight.Bold) }) },
+            bottomBar = {
+                NavigationBar(containerColor = Color.White) {
+                    PantryTab.entries.forEach { destination ->
+                        NavigationBarItem(selected = tab == destination, onClick = { tab = destination }, icon = { Text(destination.glyph) }, label = { Text(destination.label) })
+                    }
+                }
+            },
+            floatingActionButton = { if (tab == PantryTab.Pantry) Button(onClick = { showAdd = true }) { Text("＋ Add item") } }) { padding ->
+            when (tab) {
+                PantryTab.Pantry -> LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item {
                     Text("A little less waste, one shelf at a time.", color = Muted, modifier = Modifier.padding(top = 4.dp))
                     Spacer(Modifier.height(8.dp))
@@ -84,6 +110,35 @@ private fun PantryPalApp(vm: PantryViewModel = viewModel()) {
                 if (visible.isEmpty()) item { Text("Your pantry is clear. Add an item to get started.", color = Muted, modifier = Modifier.padding(vertical = 28.dp)) }
                 items(visible, key = { it.id }) { entry -> PantryRow(entry, today) { vm.markUsed(entry.id) } }
                 item { Text("Saved on this device · no account or cloud sync", color = Muted, modifier = Modifier.padding(vertical = 16.dp)) }
+            }
+                PantryTab.List -> LazyColumn(Modifier.fillMaxSize().padding(padding).padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    item { Text("Shopping list", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold); Text("A quick list for your next shop", color = Muted) }
+                    item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        OutlinedTextField(shoppingDraft, { shoppingDraft = it }, Modifier.weight(1f), label = { Text("Add an item") }, singleLine = true, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done), keyboardActions = KeyboardActions(onDone = { if (shoppingDraft.isNotBlank()) { shoppingList.add(shoppingDraft.trim()); shoppingDraft = "" } }))
+                        Button(onClick = { if (shoppingDraft.isNotBlank()) { shoppingList.add(shoppingDraft.trim()); shoppingDraft = "" } }) { Text("Add") }
+                    } }
+                    items(shoppingList) { item -> Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) { Text("□  $item", color = Ink); TextButton(onClick = { shoppingList.remove(item) }) { Text("Done") } }
+                    } }
+                    item { Text("Tap Done when it’s in your basket.", color = Muted, modifier = Modifier.padding(top = 8.dp)) }
+                }
+                PantryTab.Plan -> LazyColumn(Modifier.fillMaxSize().padding(padding).padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    item { Text("This week", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold); Text("Simple ideas to use what you have", color = Muted) }
+                    listOf("Mon · Green bowl" to "Spinach · avocado · grains", "Wed · Creamy pasta" to "Oat milk · herbs · pantry pasta", "Fri · Citrus toast" to "Lemons · sourdough · ricotta").forEach { (meal, ingredients) ->
+                        item { Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) { Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(meal, fontWeight = FontWeight.SemiBold, color = Ink); Text(ingredients, color = Muted, style = MaterialTheme.typography.bodySmall)
+                            TextButton(onClick = { ingredients.split(" · ").forEach { if (it !in shoppingList) shoppingList.add(it) } }) { Text("Add ingredients to list") }
+                        } } }
+                    }
+                }
+                PantryTab.Settings -> Column(Modifier.fillMaxSize().padding(padding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text("Settings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text("Choose a look", color = Muted)
+                    pantryPalettes.forEachIndexed { index, option ->
+                        FilterChip(selected = paletteIndex == index, onClick = { paletteIndex = index }, label = { Text("${option.name} theme") })
+                    }
+                    Text("Your pantry stays on this device. No account or cloud sync is used.", color = Muted)
+                }
             }
         }
         if (showAdd) AddItemDialog(onDismiss = { showAdd = false }, onAdd = { name, category, quantity, days ->
@@ -122,9 +177,20 @@ private fun AddItemDialog(onDismiss: () -> Unit, onAdd: (String, String, String,
             OutlinedTextField(name, { name = it }, label = { Text("Item name") }, singleLine = true)
             OutlinedTextField(quantity, { quantity = it }, label = { Text("Quantity") }, singleLine = true)
             OutlinedTextField(days, { days = it.filter(Char::isDigit).take(3) }, label = { Text("Days until expiry") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { listOf("Produce", "Dairy", "Pantry", "Other").forEach {
-                FilterChip(category == it, onClick = { category = it }, label = { Text(it) })
-            } }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                listOf("Produce", "Dairy", "Pantry", "Other").chunked(2).forEach { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { option ->
+                            FilterChip(
+                                selected = category == option,
+                                onClick = { category = option },
+                                label = { Text(option) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }, confirmButton = { TextButton(enabled = name.isNotBlank() && (days.toIntOrNull() ?: -1) >= 0, onClick = { onAdd(name, category, quantity, days.toIntOrNull() ?: 0) }) { Text("Save item") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
 }
