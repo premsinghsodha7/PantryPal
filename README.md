@@ -3,6 +3,12 @@
 > An offline-first pantry companion built with Kotlin and Jetpack Compose.
 
 Keep track of what's on the shelf, spot food that's best used soon, and remove items as you cook. Pantry entries are stored locally in a Room database; there is no account or cloud service.
+## App preview
+
+![PantryPal polished app preview](screenshots/app-preview.jpg)
+
+*Portfolio mockup composed from the current Compose layout and sample content.*
+
 
 ## Features
 
